@@ -16,7 +16,7 @@ public sealed class TrainingCreationTests
             "Fundamentos de C#",
             "Introdução ao C#",
             "2026-09-15",
-            8);
+            4);
 
         var firstResponse = await client.PostAsJsonAsync("/api/trainings", request);
         var secondResponse = await client.PostAsJsonAsync(
@@ -30,5 +30,25 @@ public sealed class TrainingCreationTests
         Assert.Equal(
             "Já existe um treinamento com esta data de início.",
             error.RootElement.GetProperty("errors").GetProperty("startDate")[0].GetString());
+    }
+
+    [Fact]
+    public async Task ReturnsBadRequestWhenDurationExceedsMaximum()
+    {
+        using var factory = new TrainingCatalogApiFactory();
+        using var client = factory.CreateClient();
+        var request = new CreateTrainingRequest(
+            "Fundamentos de C#",
+            "Introdução ao C#",
+            "2026-09-15",
+            5);
+
+        var response = await client.PostAsJsonAsync("/api/trainings", request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var error = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        Assert.Equal(
+            "A carga horária não pode exceder quatro horas.",
+            error.RootElement.GetProperty("errors").GetProperty("durationHours")[0].GetString());
     }
 }
